@@ -119,3 +119,17 @@ func (k Key) add(piece string) Key {
 	newKey[len(k)] = piece
 	return newKey
 }
+
+func popComment(k Key) (string, Key) {
+	t := k[:0]
+	cm := ""
+	for _, v := range k {
+		if !strings.HasPrefix(v, "#") || cm != "" {
+			t = append(t, v)
+		} else if cm == "" {
+			cm = v
+		}
+	}
+	k = t
+	return cm, t
+}

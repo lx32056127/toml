@@ -334,6 +334,7 @@ func (enc *Encoder) eArrayOrSliceElement(rv reflect.Value) {
 }
 
 func (enc *Encoder) eArrayOfTables(key Key, rv reflect.Value) {
+	_, key = popComment(key)
 	if len(key) == 0 {
 		encPanic(errNoKey)
 	}
@@ -350,12 +351,19 @@ func (enc *Encoder) eArrayOfTables(key Key, rv reflect.Value) {
 }
 
 func (enc *Encoder) eTable(key Key, rv reflect.Value) {
+	cm, k := popComment(key)
+	key = k
 	if len(key) == 1 {
 		// Output an extra newline between top-level tables.
 		// (The newline isn't written if nothing else has been written though.)
 		enc.newline()
 	}
 	if len(key) > 0 {
+		if strings.HasPrefix(cm, "# ") {
+			enc.wf("%s", cm)
+			enc.newline()
+		}
+
 		enc.wf("%s[%s]", enc.indentStr(key), key)
 		enc.newline()
 	}
@@ -512,12 +520,13 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 			}
 
 			if inline {
-				enc.writeKeyValue(Key{keyName}, fieldVal, true)
+				enc.writeKeyValue(Key{opts.comment, keyName}, fieldVal, true)
 				if fieldIndex[0] != len(fields)-1 {
 					enc.wf(", ")
 				}
 			} else {
-				enc.encode(key.add(keyName), fieldVal)
+				k := key.add(opts.comment)
+				enc.encode(k.add(keyName), fieldVal)
 			}
 		}
 	}
@@ -615,6 +624,7 @@ type tagOptions struct {
 	name      string
 	omitempty bool
 	omitzero  bool
+	comment   string
 }
 
 func getOptions(tag reflect.StructTag) tagOptions {
@@ -633,6 +643,14 @@ func getOptions(tag reflect.StructTag) tagOptions {
 			opts.omitzero = true
 		}
 	}
+
+	c := tag.Get("comment")
+	if c == "-" || c == "" {
+		opts.comment = "#-"
+		return opts
+	}
+
+	opts.comment = "# " + c
 	return opts
 }
 
@@ -682,6 +700,21 @@ func (enc *Encoder) writeKeyValue(key Key, val reflect.Value, inline bool) {
 	if len(key) == 0 {
 		encPanic(errNoKey)
 	}
+
+	cm, k := popComment(key)
+
+	//cm := key[len(key)-2]
+	if strings.HasPrefix(cm, "# ") {
+		enc.wf("%s", cm)
+		enc.newline()
+	}
+
+	key = k
+	// delete comment
+	//if strings.HasPrefix(cm, "#") {
+	//	key = key[len(key)-1:]
+	//}
+
 	enc.wf("%s%s = ", enc.indentStr(key), key.maybeQuoted(len(key)-1))
 	enc.eElement(val)
 	if !inline {

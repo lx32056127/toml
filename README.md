@@ -49,12 +49,13 @@ You can also use struct tags if your struct field name doesn't map to a TOML key
 value directly:
 
 ```toml
+# this is comment
 some_key_NAME = "wat"
 ```
 
 ```go
 type TOML struct {
-    ObscureKey string `toml:"some_key_NAME"`
+    ObscureKey string `toml:"some_key_NAME" comment:"this is comment"`
 }
 ```
 

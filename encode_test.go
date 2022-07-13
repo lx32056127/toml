@@ -212,6 +212,51 @@ time = 1985-06-18T15:16:17Z
 		v, expected, nil)
 }
 
+func TestEncodeWithComment(t *testing.T) {
+	type simple struct {
+		Bool   bool              `toml:"bool,omitempty" comment:"is Bool"`
+		String string            `toml:"string,omitempty"  comment:"is String"`
+		Array  [0]byte           `toml:"array,omitempty" comment:"is Array"`
+		Slice  []int             `toml:"slice,omitempty" comment:"is Slice"`
+		Map    map[string]string `toml:"map,omitempty" comment:"is Map"`
+		Time   time.Time         `toml:"time,omitempty" comment:"is Time"`
+	}
+
+	var v simple
+	encodeExpected(t, "fields with omitempty are omitted when empty", v, "", nil)
+	m := make(map[string]string)
+	v = simple{
+		Bool:   true,
+		String: "hello",
+		Array:  [0]byte{},
+		Slice:  []int{9, 9, 8, 1},
+		Map:    m,
+		Time:   time.Date(1985, 6, 18, 15, 16, 17, 0, time.UTC),
+	}
+
+	var buf bytes.Buffer
+	err := NewEncoder(&buf).Encode(v)
+	if err != nil {
+		return
+	}
+
+	have := strings.TrimSpace(buf.String())
+	expected := `# is Bool
+bool = true
+# is String
+string = "hello"
+# is Slice
+slice = [9, 9, 8, 1]
+# is Time
+time = 1985-06-18T15:16:17Z`
+	if have != expected {
+		t.Errorf("\nhave:\n%s\nwant:\n%s\n", have, expected)
+	}
+
+	encodeExpected(t, "fields with omitempty are not omitted when non-empty",
+		v, expected, nil)
+}
+
 func TestEncodeWithOmitZero(t *testing.T) {
 	type simple struct {
 		Number   int     `toml:"number,omitzero"`
@@ -583,9 +628,9 @@ Fun = "why would you do this?"
 [Sound]
   S = "miauw"
 `
-
-	if buf.String() != want {
-		t.Error("\n" + buf.String())
+	have := buf.String()
+	if have != want {
+		t.Error("have:\n" + have + "\nwant:\n" + want)
 	}
 }
 
