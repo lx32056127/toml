@@ -360,7 +360,7 @@ func (enc *Encoder) eTable(key Key, rv reflect.Value) {
 	}
 	if len(key) > 0 {
 		if strings.HasPrefix(cm, "# ") {
-			enc.wf("%s", cm)
+			enc.wf("%s%s", enc.indentStr(key), cm)
 			enc.newline()
 		}
 
@@ -702,18 +702,11 @@ func (enc *Encoder) writeKeyValue(key Key, val reflect.Value, inline bool) {
 	}
 
 	cm, k := popComment(key)
-
-	//cm := key[len(key)-2]
+	key = k
 	if strings.HasPrefix(cm, "# ") {
-		enc.wf("%s", cm)
+		enc.wf("%s%s", enc.indentStr(key), cm)
 		enc.newline()
 	}
-
-	key = k
-	// delete comment
-	//if strings.HasPrefix(cm, "#") {
-	//	key = key[len(key)-1:]
-	//}
 
 	enc.wf("%s%s = ", enc.indentStr(key), key.maybeQuoted(len(key)-1))
 	enc.eElement(val)
